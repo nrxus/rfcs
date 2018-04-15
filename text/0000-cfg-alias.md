@@ -90,7 +90,7 @@ struct MyComplicatedStruct;
 type MyStruct = MyComplicatedStruct;
 
 // alias enums per RFC 2338:
-struct MyComplicatedEnum;
+enum MyComplicatedEnum {};
 type MyEnum = MyComplicatedEnum;
 
 // alias traits per RFC 1733:
