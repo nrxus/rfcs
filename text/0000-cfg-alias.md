@@ -21,9 +21,11 @@ It is not uncommon for `#[cfg(...)]` attributes to be composed of other properti
 `#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]`
 
 The above conditional compilation attribute will prevent this code to attempt to compile on
-target architectures that are not `x86` or `x86_64`.
+target architectures that are not `x86` or `x86_64`. This specific combination of conditional
+compilation attributes is repeated 48* times throughout the rustc code across multiple files
+as of the 2018-04-01 nightly.
 
-This way of combining conditional compilation attributes is used often,
+This example demonstrates that combining cfg attributes is used often
 and there is currently no way to encapsulate it into a single conditional compilation attribute
 that can be re-used.
 
@@ -49,8 +51,14 @@ fn function_compiles_only_on_not_x86_target_archs() {
 The new `#[cfg(any_x86)]` attribute could be used anywhere that
 `#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]` and have the same effect.
 
-In the above example, there are only two conditional compilation attributes wrapped in an `any`.
-Once could easily use this to simplify many conditional compilation attributes, such as:
+This use of cfg attributes are not restricted to only rustc code,
+in the popular crate serde (v1.0.37) the author found 77* uses of
+`#[cfg(any(feature = "std", feature = "alloc"))]`. This RFC would allow serde developers to
+write an alias that gives meaning to the combination of these cfg features and use that single
+name throughout their codebase.
+
+In the above examples, there are only two conditional compilation attributes wrapped in an `any`.
+Once could easily use this RFC to simplify many conditional compilation attributes, such as:
 
 ```rust
 #[cfg(integration_test)] = #[cfg(all(test, feature = integration))]
@@ -293,3 +301,6 @@ traits. This will extend the concept of aliasing to `#[cfg(...)]` attributes.
 [unresolved]: #unresolved-questions
 
 - Does rust currently have limitations on the names of cfg attributes?
+
+* Data found by running this command on the different repositories:
+`ag "^\s*#\[cfg\(((.|\n)*?)\]" -o | sed 's/.*://' | sed 's/^[ ]*//' | sed '/^$/d' | sed ':a;N;$!ba;s/,\n/,\t/g' | tr -d " \t" | sort | uniq -c | sort -nr`
