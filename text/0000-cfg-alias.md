@@ -22,7 +22,7 @@ It is not uncommon for `#[cfg(...)]` attributes to be composed of other properti
 
 The above conditional compilation attribute will prevent this code to attempt to compile on
 target architectures that are not `x86` or `x86_64`. This specific combination of conditional
-compilation attributes is repeated 48* times throughout the rustc code across multiple files
+compilation attributes is repeated 48<sup>*</sup> times throughout the rustc code across multiple files
 as of the 2018-04-01 nightly.
 
 This example demonstrates that combining cfg attributes is used often
@@ -52,7 +52,7 @@ The new `#[cfg(any_x86)]` attribute could be used anywhere that
 `#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]` and have the same effect.
 
 This use of cfg attributes are not restricted to only rustc code,
-in the popular crate serde (v1.0.37) the author found 77* uses of
+in the popular crate serde (v1.0.37) the author found 77<sup>*</sup> uses of
 `#[cfg(any(feature = "std", feature = "alloc"))]`. This RFC would allow serde developers to
 write an alias that gives meaning to the combination of these cfg features and use that single
 name throughout their codebase.
@@ -87,7 +87,7 @@ allowing the developer to easily control which tests can be run through a featur
 
 Currently the above scenario would require duplicating on the meaning of `unit_test`
 for every block of unit tests the developer would write and not allow the developer
-to name the concept of `#[cfg(test, not(any(integration, contract)))]`
+to name the concept of `#[cfg(test, not(any(feature = integration, feature = contract)))]`
 
 The proposed syntax for cfg aliases is meant to reflect the current way in which
 Rust allows for aliasing of other types/traits.
@@ -109,6 +109,9 @@ trait MyTrait = MyComplicatedTrait;
 #[cfg(my_attr)] = #[cfg(my_complicated_attribute)]
 ```
 
+<sup>\* Data found by running this command on the different repositories:
+`ag "^\s*#\[cfg\(((.|\n)*?)\]" -o | sed 's/.*://' | sed 's/^[ ]*//' | sed '/^$/d' | sed ':a;N;$!ba;s/,\n/,\t/g' | tr -d " \t" | sort | uniq -c | sort -nr`</sup>
+
 # Guide-level explanation
 [guide-level-explanation]: #guide-level-explanation
 
@@ -116,7 +119,9 @@ trait MyTrait = MyComplicatedTrait;
 Oftentime, a single attribute is not enough and Rust provides the ability of combining attributes using:
 
 `#[cfg(any(x, y, ...))]`
+
 `#[cfg(all(x, y, ...))]`
+
 `#[cfg(not(x))]`
 
 Repeating the combinations of the attributes can be frustrating and a cause of errors, thus
@@ -124,7 +129,7 @@ Rust provides the ability to alias `#[cfg(...)]` attributes, allowing you to nam
 
 Rust allows you to do this by introducing the the aliases at the top of your crate.
 
-If you are writing a binary, you can it to your `main.rs`.
+If you are writing a binary, you can add it to your `main.rs`.
 If you are writing a library, you can add it to your `lib.rs`
 
 ```rust
@@ -132,7 +137,7 @@ If you are writing a library, you can add it to your `lib.rs`
 #[cfg(my_alias)] = #[cfg(all(some, long, complicated, not(easy, to, remember)))]
 ```
 
-Aliases introduced at the top of your create will be usable anywhere in your crate.
+Aliases introduced at the top of your crate will be usable anywhere in your crate.
 
 ```rust
 //START OF LIB.RS
@@ -154,9 +159,11 @@ fn some_fn() {
 fn conditional_fn() {
   //...
 }
+
+//END OF INNER.RS
 ```
 
-`#[cfg(...)]` aliases do NOT get exposed between crates.
+`#[cfg(...)]` aliases do *not* get exposed between crates.
 If in your binary, you are using the common pattern of having a `lib` module that gets exported
 to your `main.rs`, then any cfg alias declared in your `main.rs`
 will NOT be exposed to the files in your `lib` module.
@@ -171,7 +178,7 @@ Declaring a `#[cfg(...)]` alias in other module will be an error at compile time
 #[cfg(my_alias)] = #[cfg(any(foo, bar))] // this will compile
 
 mod inner {
-  #[cfg(my_other_alias)] = #[cfg(any(foo, bar))] // this will NOT compile
+  #[cfg(my_other_alias)] = #[cfg(any(foo, bar))] // this will *not* compile
 }
 ```
 
@@ -186,9 +193,9 @@ A repeated alias will be an error at compile time
 In a similar vein,
 an alias that shares the same name as an existing cfg will be an error at compile time
 
+```rust
 //compiled using `--cfg=foobar` flag in rustc
 
-```rust
 $[cfg(foobar)] = #[cfg(any(foo, bar))] // error. foobar already exists
 ```
 
@@ -201,9 +208,9 @@ and be accepted in the same spots as any other `#[cfg(...)]` attribute.
 Aliases will only  be allowed at the top of a crate. This means either `main.rs` for a binary,
 or `lib.rs` for a library.
 
-Aliases that are defined at the root of the crate can be used anywhere WITHIN the crate.
+Aliases that are defined at the root of the crate can be used anywhere *within* the crate.
 
-Aliases are not exportable between crates, and a binary that is split into one/many `lib`s, will NOT
+Aliases are not exportable between crates, and a binary that is split into one/many `lib`s, will *not*
 be able to use or share the `#[cfg(...)]` aliases from it's libraries.
 
 Aliases will fail at compile-time if the same attribute already exists, either due to an existing alias,
@@ -263,7 +270,7 @@ The above syntax achieves the same as the proposed syntax, with the gained advan
 easier to identify whether a cfg attribute comes from an alias or an existing cfg attribute.
 
 The disadvantage is that now we are exposing, what the author believes to be, an implementation detail.
-The fact that the cfg attribute comes from an alias should NOT be important at the moment of use.
+The fact that the cfg attribute comes from an alias should *not* be important at the moment of use.
 
 This syntax also means that no cfgs will be allowed through a compiler flag that start with `$`.
 
@@ -278,13 +285,13 @@ declaration of cfg aliases only at the top of where it is needed.
 
 The reasoning behind not going for this approach is that it further escalates the problem of not
 knowing where the cfg alias might have come from,
-since now it can be in any parent module instea of only at the root.
-Implementing the RFC as-is would allow to add this further enhancement later without any breaking
-changes. The author recommends revisiting this point after the current implementation is stable,
+since now it can be in any parent module instead of only at the root.
+Implementing the RFC as-is does not block this extension from being added later without a breaking change.
+The author recommends revisiting this point after the current implementation is stable,
 and we get enough feedback on whether declaring cfg aliases would be useful in non-root modules.
 
 Another alternative would be to allow the cfg alias in any module,
-but do NOT expose it to any other module, child or parent.
+but do *not* expose it to any other module, child or parent.
 The author believes this would severely limit the use case of aliasing cfg attributes since the logic
 would have to be copied across modules within the same crate.
 
@@ -301,6 +308,3 @@ traits. This will extend the concept of aliasing to `#[cfg(...)]` attributes.
 [unresolved]: #unresolved-questions
 
 - Does rust currently have limitations on the names of cfg attributes?
-
-* Data found by running this command on the different repositories:
-`ag "^\s*#\[cfg\(((.|\n)*?)\]" -o | sed 's/.*://' | sed 's/^[ ]*//' | sed '/^$/d' | sed ':a;N;$!ba;s/,\n/,\t/g' | tr -d " \t" | sort | uniq -c | sort -nr`
