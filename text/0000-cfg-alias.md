@@ -47,17 +47,17 @@ Another concrete example comes from the popular crate serde, in which the author
 The above examples contain only two cfg attributes wrapped in an `any`. The feature introduced in this RFC will also help with more complex examples such as:
 
 ```rust
-#[cfg(test, not(any(feature = integration, feature = contract)))] //run tests when both the integration and then contract feature flags are off
+#[cfg(test, not(any(feature = "integration", feature = "contract")))] //run tests when both the integration and then contract feature flags are off
 mod test() {
   //... run your fast tests
 }
 
-#[cfg(integration_test)] = #[cfg(all(test, feature = integration))] //run tests when the integration flag is on
+#[cfg(all(test, feature = "integration"))] //run tests when the integration flag is on
 mod test() {
   //...do some slower tests with the real services mocked
 }
 
-#[cfg(contract_test)] = #[cfg(all(test, feature = contract))] //run tests when the contract flag is on
+#[cfg(all(test, feature = "contract"))] //run tests when the contract flag is on
 mod test() {
   //...run some contract tests to verify responses of real network calls
 }
@@ -68,8 +68,8 @@ The intention of the above snippet is to be able to control which test gets run 
 This feature will allow the user to name these concepts through an alias to help readibility and re-use of the logic:
 
 ```rust
-#[cfg(integration_test)] = #[cfg(all(test, feature = integration))]
-#[cfg(contract_test)] = #[cfg(all(test, feature = contract))]
+#[cfg(integration_test)] = #[cfg(all(test, feature = "integration"))]
+#[cfg(contract_test)] = #[cfg(all(test, feature = "contract"))]
 #[cfg(unit_test)] = #[cfg(not(any(integration_test, contract_test)))]
 ```
 
